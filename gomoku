@@ -21,6 +21,7 @@ def Think(field):
 
             # Assume to put a stone on (i, j).
             field[i][j] = 'O'
+
             if DoHaveNStones(field, position,5,'O'):
                 DebugPrint('I have a winning choice at (%d, %d)' % (i, j))
                 return position
@@ -28,7 +29,7 @@ def Think(field):
                 DebugPrint('I have a three stones at (%d, %d)' % (i,j))
                 best_position=position
                 flg=1
-            if DoHaveNStones(field,position,3,'X'):
+            if DoHaveNStones(field,position,3,'X') or DoHaveNStones(field,position,4,'X'):
                 DebugPrint('I need to stop at (%d, %d)' % (i,j))
                 flg2=1
                 if GetDistance(best_position2, CENTER) > GetDistance(position, CENTER):
@@ -50,12 +51,22 @@ def DoHaveNStones(field,position,N,player):
         return (CountStonesOnLineX(field, position, (1, 1)) >= N or
                 CountStonesOnLineX(field, position, (1, 0)) >= N or
                 CountStonesOnLineX(field, position, (1, -1)) >= N or
-                CountStonesOnLineX(field, position, (0, 1)) >= N)
+                CountStonesOnLineX(field, position, (-1, 1)) >= N or
+                CountStonesOnLineX(field, position, (-1, 0)) >= N or
+                CountStonesOnLineX(field, position, (-1, -1)) >= N or
+                CountStonesOnLineX(field, position, (0, -1)) >= N or
+                CountStonesOnLineX(field, position, (0, 1)) >= N
+                )
     else:
-            return (CountStonesOnLine(field, position, (1, 1)) >= N or
-                    CountStonesOnLine(field, position, (1, 0)) >= N or
-                    CountStonesOnLine(field, position, (1, -1)) >= N or
-                    CountStonesOnLine(field, position, (0, 1)) >= N)
+          return (CountStonesOnLine(field, position, (1, 1)) >= N or
+                CountStonesOnLine(field, position, (1, 0)) >= N or
+                CountStonesOnLine(field, position, (1, -1)) >= N or
+                CountStonesOnLine(field, position, (-1, 1)) >= N or
+                CountStonesOnLine(field, position, (-1, 0)) >= N or
+                CountStonesOnLine(field, position, (-1, -1)) >= N or
+                CountStonesOnLine(field, position, (0, -1)) >= N or
+                CountStonesOnLine(field, position, (0, 1)) >= N
+                )
 
 # Returns true if you have a five-stones line from |position|. Returns false otherwise.
 def DoHaveFiveStones(field, position):
