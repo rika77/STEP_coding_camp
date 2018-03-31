@@ -1,5 +1,5 @@
 import os
-Import wp
+import wp
 
 try:
     # 過去のindexは削除する
@@ -9,4 +9,3 @@ except OSError:
 collection = wp.WikipediaCollection("data/wp.db")
 index = wp.Index("data/index.db", collection)
 index.generate()
-

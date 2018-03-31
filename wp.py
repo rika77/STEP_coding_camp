@@ -1,6 +1,7 @@
 import sqlite3
 import sys
 import json
+import natto
 
 class Document():
     """Abstract class representing a document.
@@ -10,7 +11,7 @@ class Document():
         """Returns the id for the Document. Should be unique within the Collection.
         """
         raise NotImplementedError()
-    
+
     def text(self):
         """Returns the text for the Document.
         """
@@ -22,7 +23,7 @@ class Collection():
 
     def get_document_by_id(self, id):
         """Gets the document for the given id.
-        
+
         Returns:
             Document: The Document for the given id.
         """
@@ -30,7 +31,7 @@ class Collection():
 
     def num_documents(self):
         """Returns the number of documents.
-        
+
         Returns:
             int: The number of documents in the collection.
         """
@@ -38,7 +39,7 @@ class Collection():
 
     def get_all_documents(self):
         """Creates an iterator that iterates through all documents in the collection.
-        
+
         Returns:
             Iterable[Document]: All the documents in the collection.
         """
@@ -98,7 +99,7 @@ class WikipediaCollection(Collection):
 
     def find_article_by_title(self, query):
         """Finds an article with a title matching the query.
-        
+
         Returns:
             WikipediaArticle: Returns matching WikipediaArticle.
         """
@@ -122,7 +123,7 @@ class WikipediaCollection(Collection):
         """Gets the document (i.e. WikipediaArticle) for the given id (i.e. title).
 
         Override for Collection.
-        
+
         Returns:
             WikipediaArticle: The WikipediaArticle for the given id.
         """
@@ -145,7 +146,7 @@ class WikipediaCollection(Collection):
         """Returns the number of documents (i.e. WikipediaArticle).
 
         Override for Collection.
-        
+
         Returns:
             int: The number of documents in the collection.
         """
@@ -157,7 +158,7 @@ class WikipediaCollection(Collection):
 
     def get_all_documents(self):
         """Creates an iterator that iterates through all documents (i.e. WikipediaArticles) in the collection.
-        
+
         Returns:
             Iterable[WikipediaArticle]: All the documents in the collection.
         """
@@ -180,3 +181,39 @@ class WikipediaCollection(Collection):
                     row[7], # popularity_score
                     row[8], # num_incoming_links
                 )
+
+class Index():
+   """
+   Arguments:
+       filename: location of sqlite db
+       collection: Collection to index and search
+   """
+   def __init__(self, filename, collection):
+       self.db = sqlite3.connect(filename)
+       self.collection = collection
+
+   """Searches the index for documents that match the query.
+
+   Returns:
+       list: list of matching document ids
+   """
+   def search(self, query):
+       print("hoge")
+       # searchの処理を書く
+
+   def generate(self):
+       self.db.executescript("""
+       CREATE TABLE IF NOT EXISTS postings (
+           term TEXT NOT NULL,
+           document_id TEXT NOT NULL
+       );
+       """)
+       parser = natto.MeCab()
+       for wiki_article in self.collection.get_all_documents():
+           # print(wiki_article._text)
+           for node in parser.parse(wiki_article._text, as_nodes=True):
+               # print(node)
+               if node.is_nor():
+                   features = node.feature.split(',')
+                   if features[0] == '名詞':
+                       print(node.surface)
