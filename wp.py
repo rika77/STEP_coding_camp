@@ -198,8 +198,30 @@ class Index():
        list: list of matching document ids
    """
    def search(self, query):
-       print("hoge")
-       # searchの処理を書く
+       parser = natto.MeCab()
+       set_return_goal = set([])
+       for node in parser.parse(query, as_nodes=True):
+           # print(node)
+           if node.is_nor():
+               features = node.feature.split(',')
+               if features[0] == '名詞':
+                   #node.surface  # これが探すキーワード(=term)
+                   c = self.db.cursor()
+                   # c.execute("INSERT into postings (term, document_id) values (?, ?)", (node.surface, wiki_article.title))
+                   sub_goal = c.execute("SELECT document_id FROM postings WHERE term = ?", (node.surface,)).fetchall()
+                   # とりあえず保留でand取るか
+                   goal = []
+                   for num in sub_goal:
+                        goal.append(num[0])
+                        # numはtupleなのでlist
+                   if not set_return_goal:
+                       set_return_goal = set(goal)
+                   else:
+                       set_return_goal = set(goal) & set_return_goal
+                   # for num in goal:
+                   #     list_goal.append(num)
+       return list(set_return_goal)
+
 
    def generate(self):
        self.db.executescript("""

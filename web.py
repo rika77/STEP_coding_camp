@@ -5,21 +5,23 @@ import os
 
 collection = wp.WikipediaCollection("./data/wp.db")
 
+index = wp.Index("data/index.db", collection)
+
 @bottle.route('/action')
-# actionを書き換える
 def action():
-   query = bottle.request.query.q
-   article = collection.find_article_by_title(query)
-   bottle.response.content_type = 'application/json'
-   
-   if article is None:
+    query = bottle.request.query.q
+    articles = index.search(query)
+    bottle.response.content_type = 'application/json'
+
+    if len(articles) == 0:
         return json.dumps({
-             'textToSpeech': '見つかりません'
-        }, indent=2,separators=(',', ': '), ensure_ascii=False)
- 
-   return json.dumps({
-       'textToSpeech': article.opening_text
-       }, indent=2, separators=(',', ': '), ensure_ascii=False)
+            'textToSpeech': '見つかりません'
+        }, indent=2, separators=(',', ': '), ensure_ascii=False)
+    return json.dumps({
+        # articles[0]
+        'textToSpeech': 'か'.join(articles)
+    }, indent=2, separators=(',', ': '), ensure_ascii=False)
+
 
 @bottle.route('/article/<title>')
 def article(title):
