@@ -2,6 +2,8 @@ import sqlite3
 import sys
 import json
 import natto
+import math
+import numpy as np
 
 class Document():
     """Abstract class representing a document.
@@ -200,6 +202,7 @@ class Index():
    def search(self, query):
        parser = natto.MeCab()
        set_return_goal = set([])
+       terms = []
        for node in parser.parse(query, as_nodes=True):
            # print(node)
            if node.is_nor():
@@ -207,7 +210,10 @@ class Index():
                if features[0] == '名詞':
                    #node.surface  # これが探すキーワード(=term)
                    c = self.db.cursor()
-                   # c.execute("INSERT into postings (term, document_id) values (?, ?)", (node.surface, wiki_article.title))
+                   # query をみて termsを listでもらう
+                   terms.append(node.surface)
+
+                   # andをとった結果のgoalsを listでもらう:set_return_goal
                    sub_goal = c.execute("SELECT document_id FROM postings WHERE term = ?", (node.surface,)).fetchall()
                    # とりあえず保留でand取るか
                    goal = []
@@ -218,10 +224,53 @@ class Index():
                        set_return_goal = set(goal)
                    else:
                        set_return_goal = set(goal) & set_return_goal
-                   # for num in goal:
-                   #     list_goal.append(num)
-       return list(set_return_goal)
 
+       # 類似度の計算
+       v_q = np.array(self.calc_tf(query,terms)) * np.array(self.calc_idf(terms))
+       v_q = np.array(v_q)
+       v_docs = []
+       for candi_id in set_return_goal:
+           v_docs.append(np.array(self.calc_tf(candi_id,terms)) * np.array(self.alc_idf(terms)))
+       cos_theta = []
+       for v_doc in v_docs:
+           v_doc = np.array(v_doc)
+           theta = np.dot(v_q,v_doc) / np.linalg.norm(v_q) / np.linalg.norm(v_doc)
+           cos_theta.append(theta)
+       max_index = cos_theta.index(max(cos_theta))
+       return goals[max_index]
+
+   def calc_tf(self,doc,terms):
+       parser = natto.MeCab()
+       tf = [0 for i in range(len(terms))]
+       for node in parser.parse(doc,as_nodes = True):
+           i = 0
+           for term in terms:
+               if node.surface == term:
+                   tf[i] += 1
+               i += 1
+       return tf
+
+   def calc_idf(self,terms):
+           idf = [0 for i in range(len(terms))]
+           N = self.collection.num_documents()
+           i = 0
+           for i in range(len(terms)):
+               df = self.cal_df(term[i])
+               idf[i] = math.log(N / df)
+           return idf
+
+   def cal_df(self,term):
+        # input:term
+        # output:document_id数
+
+        c = self.db.cursor()
+        sub_goal = c.execute("SELECT document_id from postings where term = ?", term).fetchall()
+        # ここは必要?
+        goal = []
+        for num in sub_goal:
+            goal.append(num[0])
+        # ここは必要?
+        return len(goal)
 
    def generate(self):
        self.db.executescript("""
@@ -233,22 +282,11 @@ class Index():
        parser = natto.MeCab()
        i = 0
        for wiki_article in self.collection.get_all_documents():
-           if i > 5:
+           if i > 10:
                break
            i += 1
            # print(wiki_article._text)
            for node in parser.parse(wiki_article._text, as_nodes=True):
                # print(node)
                if node.is_nor():
-                   features = node.feature.split(',')
-                   if features[0] == '名詞':
-                       c = self.db.cursor()
-                       # c = self.db.cursor()
-                       # row = c.execute("SELECT text, opening_text, auxiliary_text, categories, headings, wiki_text, popularity_score, num_incoming_links FROM articles WHERE title=?", (doc_id,)).fetchone()
-                       c.execute("INSERT into postings (term, document_id) values (?, ?)", (node.surface, wiki_article.title))
-                       self.db.commit()
-       self.db.executescript("""
-       CREATE INDEX IF NOT EXISTS my_index on postings (
-           term, document_id
-           );
-       """)
+                   features = node.featu
