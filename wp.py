@@ -205,8 +205,10 @@ class Index():
        terms = []
        for node in parser.parse(query, as_nodes=True):
            # print(node)
+           print(node.surface)
            if node.is_nor():
                features = node.feature.split(',')
+               print(node.surface)
                if features[0] == '名詞':
                    #node.surface  # これが探すキーワード(=term)
                    c = self.db.cursor()
@@ -229,15 +231,20 @@ class Index():
        v_q = np.array(self.calc_tf(query,terms)) * np.array(self.calc_idf(terms))
        v_q = np.array(v_q)
        v_docs = []
+       print (set_return_goal)
        for candi_id in set_return_goal:
-           v_docs.append(np.array(self.calc_tf(candi_id,terms)) * np.array(self.alc_idf(terms)))
+           print "hi"
+           print(candi_id)
+           v_docs.append(np.array(self.calc_tf(candi_id,terms)) * np.array(self.calc_idf(terms)))
        cos_theta = []
        for v_doc in v_docs:
            v_doc = np.array(v_doc)
            theta = np.dot(v_q,v_doc) / np.linalg.norm(v_q) / np.linalg.norm(v_doc)
            cos_theta.append(theta)
+       print (terms[0])
+       print (v_docs)
        max_index = cos_theta.index(max(cos_theta))
-       return goals[max_index]
+       return goal[max_index]
 
    def calc_tf(self,doc,terms):
        parser = natto.MeCab()
@@ -255,7 +262,8 @@ class Index():
            N = self.collection.num_documents()
            i = 0
            for i in range(len(terms)):
-               df = self.cal_df(term[i])
+               # df = self.cal_df(terms[i])
+               df = 3
                idf[i] = math.log(N / df)
            return idf
 
@@ -264,7 +272,7 @@ class Index():
         # output:document_id数
 
         c = self.db.cursor()
-        sub_goal = c.execute("SELECT document_id from postings where term = ?", term).fetchall()
+        sub_goal = c.execute("SELECT document_id from postings where term = ?", (term,)).fetchall()
         # ここは必要?
         goal = []
         for num in sub_goal:
@@ -289,4 +297,15 @@ class Index():
            for node in parser.parse(wiki_article._text, as_nodes=True):
                # print(node)
                if node.is_nor():
-                   features = node.featu
+                   features = node.feature.split(',')
+                   if features[0] == '名詞':
+                       c = self.db.cursor()
+                       # c = self.db.cursor()
+                       # row = c.execute("SELECT text, opening_text, auxiliary_text, categories, headings, wiki_text, popularity_score, num_incoming_links FROM articles WHERE title=?", (doc_id,)).fetchone()
+                       c.execute("INSERT into postings (term, document_id) values (?, ?)", (node.surface, wiki_article.title))
+                       self.db.commit()
+       self.db.executescript("""
+       CREATE INDEX IF NOT EXISTS my_index on postings (
+           term, document_id
+           );
+       """)
