@@ -247,3 +247,8 @@ class Index():
                        # row = c.execute("SELECT text, opening_text, auxiliary_text, categories, headings, wiki_text, popularity_score, num_incoming_links FROM articles WHERE title=?", (doc_id,)).fetchone()
                        c.execute("INSERT into postings (term, document_id) values (?, ?)", (node.surface, wiki_article.title))
                        self.db.commit()
+       self.db.executescript("""
+       CREATE INDEX IF NOT EXISTS my_index on postings (
+           term, document_id
+           );
+       """)
