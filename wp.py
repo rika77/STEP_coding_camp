@@ -216,4 +216,8 @@ class Index():
                if node.is_nor():
                    features = node.feature.split(',')
                    if features[0] == '名詞':
-                       print(node.surface)
+                       c = self.db.cursor()
+                       # c = self.db.cursor()
+                       # row = c.execute("SELECT text, opening_text, auxiliary_text, categories, headings, wiki_text, popularity_score, num_incoming_links FROM articles WHERE title=?", (doc_id,)).fetchone()
+
+                       c.execute("INSERT into postings (term, document_id) values (?, ?)", (node.surface, wiki_article.title))
