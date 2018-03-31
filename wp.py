@@ -209,7 +209,11 @@ class Index():
        );
        """)
        parser = natto.MeCab()
+       i = 0
        for wiki_article in self.collection.get_all_documents():
+           if i > 5:
+               break
+           i += 1
            # print(wiki_article._text)
            for node in parser.parse(wiki_article._text, as_nodes=True):
                # print(node)
@@ -219,5 +223,5 @@ class Index():
                        c = self.db.cursor()
                        # c = self.db.cursor()
                        # row = c.execute("SELECT text, opening_text, auxiliary_text, categories, headings, wiki_text, popularity_score, num_incoming_links FROM articles WHERE title=?", (doc_id,)).fetchone()
-
                        c.execute("INSERT into postings (term, document_id) values (?, ?)", (node.surface, wiki_article.title))
+                       self.db.commit()
